@@ -15,11 +15,9 @@ usuarios_list = [usuarios(id = 1, name = "Milton", surname = "Sandoval", url = "
                  usuarios(id = 3, name = "Rodolfo", surname = "Maloso", url = "https://rodolfomaloso.com.bo", age = 35)]
 
 
-@app.get("/users")
-async def users():
-    return "Hola users"
 
-@app.get("/users/list")
+
+@app.get("/users")
 async def userlist():
     return usuarios_list
 
@@ -31,6 +29,31 @@ async def user(ids:int):
 async def user(ids:int):
     return search_id(ids)
 
+@app.post("/users/")
+async def user(user:usuarios):
+    if type(search_id(user.id)) == usuarios:
+        return {"error":"El usuario ya existe"}
+    else:
+        usuarios_list.append(user)
+        return user
+
+@app.put("/users/")
+async def user(user:usuarios):
+    if type(search_id(user.id)) == usuarios:
+        posicion = usuarios_list.index(search_id(user.id))
+        usuarios_list[posicion] = user
+        return user
+    else:
+        return {"usuario no existe"}
+
+@app.delete("/users/{ids}")
+async def user(ids:int):
+    if type(search_id(ids)) == usuarios:
+        posicion = usuarios_list.index(search_id(ids))
+        usuarios_list.pop(posicion)
+        return usuarios_list
+    else:
+        return {"usuario no existe"}
 
 def search_id(ids:int):
     for usuarios in usuarios_list:
