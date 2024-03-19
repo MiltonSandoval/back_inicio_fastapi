@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -17,43 +17,43 @@ usuarios_list = [usuarios(id = 1, name = "Milton", surname = "Sandoval", url = "
 
 
 
-@app.get("/users")
+@app.get("/users", response_model=list[usuarios])
 async def userlist():
     return usuarios_list
 
-@app.get("/users/{ids}")
+@app.get("/users/{ids}", response_model= usuarios)
 async def user(ids:int):
     return search_id(ids)
 
-@app.get("/users/")
+@app.get("/users/", response_model= usuarios)
 async def user(ids:int):
     return search_id(ids)
 
-@app.post("/users/")
+@app.post("/users/", response_model=usuarios,status_code=201)
 async def user(user:usuarios):
     if type(search_id(user.id)) == usuarios:
-        return {"error":"El usuario ya existe"}
+        raise HTTPException(status_code=404, detail="El usuario ya existe")
     else:
         usuarios_list.append(user)
         return user
 
-@app.put("/users/")
+@app.put("/users/", response_model=usuarios,status_code=200)
 async def user(user:usuarios):
     if type(search_id(user.id)) == usuarios:
         posicion = usuarios_list.index(search_id(user.id))
         usuarios_list[posicion] = user
         return user
     else:
-        return {"usuario no existe"}
+        raise HTTPException(status_code=404, detail="El usuario no existe")
 
-@app.delete("/users/{ids}")
+@app.delete("/users/{ids}", response_model= list[usuarios],status_code=200)
 async def user(ids:int):
     if type(search_id(ids)) == usuarios:
         posicion = usuarios_list.index(search_id(ids))
         usuarios_list.pop(posicion)
         return usuarios_list
     else:
-        return {"usuario no existe"}
+        raise HTTPException(status_code=404, detail="El usuario no existe")
 
 def search_id(ids:int):
     for usuarios in usuarios_list:
