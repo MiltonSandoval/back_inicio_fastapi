@@ -1,7 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from router import productos
 
 app = FastAPI()
+app.include_router(productos.routers)
 
 class usuarios(BaseModel):
     id : int
