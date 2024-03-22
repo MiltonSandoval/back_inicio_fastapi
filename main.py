@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from router import productos
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 app.include_router(productos.routers)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class usuarios(BaseModel):
     id : int

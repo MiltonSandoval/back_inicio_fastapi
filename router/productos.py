@@ -1,7 +1,9 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-routers = APIRouter()
+routers = APIRouter(prefix="/productos",
+                    tags=["productos"],
+                    responses={404: {"message": "No Encontrado"}})
 
 class productos(BaseModel):
     id : int
@@ -15,7 +17,7 @@ products_list = [productos(id = 1, name = "Cuaderno",precio = 19),
 
 
 
-@routers.get("/productos", response_model=list[productos])
+@routers.get("/", response_model=list[productos])
 async def product_list():
     return products_list
 
