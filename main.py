@@ -1,10 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from router import productos
+from router import productos, basic_auth_user, jwt_auth_user
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 app.include_router(productos.routers)
+app.include_router(basic_auth_user.router)
+app.include_router(jwt_auth_user.router)
+
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class usuarios(BaseModel):
