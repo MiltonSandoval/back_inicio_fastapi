@@ -1,5 +1,8 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, status
+from db.models.user import Usuarios
+from db.schema.user import user_schema, users_schema
+from db.client import db_client
+from bson import ObjectId
 
 routers = APIRouter(prefix="/userdb",
                     tags=["userdb"],
@@ -7,61 +10,59 @@ routers = APIRouter(prefix="/userdb",
 
 
 
-class usuarios(BaseModel):
-    id : int
-    name : str
-    surname : str
-    url : str
-    age : int
 
-usuarios_list = [usuarios(id = 1, name = "Milton", surname = "Sandoval", url = "https://Milton.dev.com", age = 19),
-                 usuarios(id = 2, name = "Pardo", surname = "Osuno", url = "https://pardososuno.com", age = 20),
-                 usuarios(id = 3, name = "Rodolfo", surname = "Maloso", url = "https://rodolfomaloso.com.bo", age = 35)]
+
+usuarios_list = []
 
 
 
 
-@routers.get("/", response_model=list[usuarios])
-async def userlist():
-    return usuarios_list
+@routers.get("/", response_model=list[Usuarios])
+async def users():
+    return users_schema(db_client.local.users.find())
 
 @routers.get("/{ids}")
-async def user(ids:int):
-    return search_id(ids)
+async def user(ids:str):
+    return search_db("_id", ObjectId(ids))
 
-@routers.get("/", response_model= usuarios)
-async def user(ids:int):
-    return search_id(ids)
+@routers.get("/", response_model= Usuarios)
+async def user(ids:str):
+    return search_db("_id", ObjectId(ids))
 
-@routers.post("/", response_model=usuarios,status_code=201)
-async def user(user:usuarios):
-    if type(search_id(user.id)) == usuarios:
-        raise HTTPException(status_code=404, detail="El usuario ya existe")
-    else:
-        usuarios_list.append(user)
-        return user
+@routers.post("/", response_model=Usuarios,status_code=201)
+async def user(user:Usuarios):
 
-@routers.put("/", response_model=usuarios,status_code=200)
-async def user(user:usuarios):
-    if type(search_id(user.id)) == usuarios:
+    if type(search_db("email", user.email)) == Usuarios:
+        raise HTTPException(
+            status_code=404, detail="El usuario ya existe"
+        )
+
+    user_dic = dict(user)
+    del user_dic["id"]
+
+    ids = db_client.local.users.insert_one(user_dic).inserted_id
+
+    new_user = user_schema(db_client.local.users.find_one({"_id":ids}))
+
+    return Usuarios(**new_user)
+
+@routers.put("/", response_model=Usuarios,status_code=200)
+async def user(user:Usuarios):
+    if type(search_id(user.id)) == Usuarios:
         posicion = usuarios_list.index(search_id(user.id))
         usuarios_list[posicion] = user
         return user
     else:
         raise HTTPException(status_code=404, detail="El usuario no existe")
 
-@routers.delete("/{ids}", response_model= list[usuarios],status_code=200)
-async def user(ids:int):
-    if type(search_id(ids)) == usuarios:
-        posicion = usuarios_list.index(search_id(ids))
-        usuarios_list.pop(posicion)
-        return usuarios_list
-    else:
-        raise HTTPException(status_code=404, detail="El usuario no existe")
+@routers.delete("/{ids}",status_code=204)
+async def user(ids:str):
+    delete = db_client.local.users.find_one_and_delete({"_id":ObjectId(ids)})
+    if not delete:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error":"no se a podido eliminar el usuario"})
 
-def search_id(ids:int):
-    for usuarios in usuarios_list:
-        if ids == usuarios.id:
-            return usuarios
-    else:
-        return {"error" : "No se a encontrado el usuario"}
+def search_db(llave:str, password):
+    try:
+        return Usuarios(**user_schema(db_client.local.users.find_one({llave:password})))
+    except:
+        return {"error":"No se a encontrado el Usuario"}
