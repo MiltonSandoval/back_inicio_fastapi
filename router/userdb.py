@@ -1,16 +1,11 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from router import productos, basic_auth_user, jwt_auth_user, userdb
-from fastapi.staticfiles import StaticFiles
 
-app = FastAPI()
-app.include_router(productos.routers)
-app.include_router(basic_auth_user.router)
-app.include_router(jwt_auth_user.router)
-app.include_router(userdb.routers)
+routers = APIRouter(prefix="/userdb",
+                    tags=["userdb"],
+                    responses={404: {"message": "No Encontrado"}})
 
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class usuarios(BaseModel):
     id : int
@@ -26,19 +21,19 @@ usuarios_list = [usuarios(id = 1, name = "Milton", surname = "Sandoval", url = "
 
 
 
-@app.get("/users", response_model=list[usuarios])
+@routers.get("/", response_model=list[usuarios])
 async def userlist():
     return usuarios_list
 
-@app.get("/users/{ids}", response_model= usuarios)
+@routers.get("/{ids}")
 async def user(ids:int):
     return search_id(ids)
 
-@app.get("/users/", response_model= usuarios)
+@routers.get("/", response_model= usuarios)
 async def user(ids:int):
     return search_id(ids)
 
-@app.post("/users/", response_model=usuarios,status_code=201)
+@routers.post("/", response_model=usuarios,status_code=201)
 async def user(user:usuarios):
     if type(search_id(user.id)) == usuarios:
         raise HTTPException(status_code=404, detail="El usuario ya existe")
@@ -46,7 +41,7 @@ async def user(user:usuarios):
         usuarios_list.append(user)
         return user
 
-@app.put("/users/", response_model=usuarios,status_code=200)
+@routers.put("/", response_model=usuarios,status_code=200)
 async def user(user:usuarios):
     if type(search_id(user.id)) == usuarios:
         posicion = usuarios_list.index(search_id(user.id))
@@ -55,7 +50,7 @@ async def user(user:usuarios):
     else:
         raise HTTPException(status_code=404, detail="El usuario no existe")
 
-@app.delete("/users/{ids}", response_model= list[usuarios],status_code=200)
+@routers.delete("/{ids}", response_model= list[usuarios],status_code=200)
 async def user(ids:int):
     if type(search_id(ids)) == usuarios:
         posicion = usuarios_list.index(search_id(ids))
