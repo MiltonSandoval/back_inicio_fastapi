@@ -2,9 +2,11 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
-router = APIRouter()
+router = APIRouter(prefix="/basic",
+                    tags=["basic auth"],
+                    responses={404: {"message": "No Encontrado"}})
 
-oauth2 = OAuth2PasswordBearer(tokenUrl="login")
+oauth2 = OAuth2PasswordBearer(tokenUrl="basic")
 
 class usuarios(BaseModel):
     username : str
@@ -53,7 +55,7 @@ async def current_user(token: str = Depends(oauth2)):
             detail="Usuario Inactivo")
     return user
 
-@router.post("/login")
+@router.post("/")
 async def login(form : OAuth2PasswordRequestForm = Depends()):
     user_db = users_db.get(form.username)
     if not user_db:
@@ -63,6 +65,6 @@ async def login(form : OAuth2PasswordRequestForm = Depends()):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contrasena no es correcto")
     return {"access_token": user.username, "token_type":"Bearer"}
 
-@router.get("/user/me")
+@router.get("/user")
 async def me(user: usuarios = Depends(current_user)):
     return user

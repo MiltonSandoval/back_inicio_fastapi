@@ -48,12 +48,14 @@ async def user(user:Usuarios):
 
 @routers.put("/", response_model=Usuarios,status_code=200)
 async def user(user:Usuarios):
-    if type(search_id(user.id)) == Usuarios:
-        posicion = usuarios_list.index(search_id(user.id))
-        usuarios_list[posicion] = user
-        return user
-    else:
-        raise HTTPException(status_code=404, detail="El usuario no existe")
+    user_dict = dict(user)
+    del user_dict["id"]
+    try:
+        db_client.local.users.find_one_and_replace({"_id": ObjectId(user.id)}, user_dict)
+    except:
+        return {"error":"No se ha actualizado el usuario"}
+
+    return search_db("_id", ObjectId(user.id))
 
 @routers.delete("/{ids}",status_code=204)
 async def user(ids:str):
